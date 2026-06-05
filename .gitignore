@@ -1,0 +1,10 @@
+.env
+*.db
+__pycache__/
+*.pyc
+*.pyo
+.idea/
+.venv/
+venv/
+services/ai_service.py
+handlers/voice.py
