@@ -1,0 +1,15 @@
+services:
+  - type: worker
+    name: finance-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: DATABASE_PATH
+        value: /var/data/finance.db
+    disk:
+      name: bot-data
+      mountPath: /var/data
+      sizeGB: 1

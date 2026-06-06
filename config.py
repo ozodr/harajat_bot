@@ -6,5 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8638120837:AAFZbffpFxLtpM1BmEspgvjcoR3suc4sbN8")
-DATABASE_PATH = "finance.db"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN muhit o'zgaruvchisi o'rnatilmagan!")
+DATABASE_PATH = os.getenv("DATABASE_PATH", "finance.db")
