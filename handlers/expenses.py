@@ -1,5 +1,5 @@
 """
-💸 Harajat qo'shish handleri - menyu asosida
+💸 Xarajat qo'shish handleri - menyu asosida
 """
 import logging
 from datetime import datetime
@@ -14,20 +14,24 @@ from services.database import Database
 router = Router()
 logger = logging.getLogger(__name__)
 
-MAIN_MENU_TEXT = "📋 <b>Xarajat turini tanlang:</b>"
+MAIN_MENU_TEXT = (
+    "◌ <b>Xarajat paneli</b>\n\n"
+    "Kategoriyani tanlang, keyin summani yuboring.\n"
+    "<i>Masalan: 50000, 50k yoki 60000+50000</i>"
+)
 MANAGE_CATEGORIES_TEXT = (
-    "⚙️ <b>Kategoriyalarni boshqarish</b>\n\n"
-    "Kategoriyani tanlang:\n"
+    "◇ <b>Kategoriyalar</b>\n\n"
+    "Tahrirlash yoki yashirish uchun kategoriya tanlang.\n"
     "<i>🚫 — yashirilgan | ✏️ — qo'shilgan</i>"
 )
 
 DEFAULT_CATEGORIES = [
-    ("🍽️ Ovqatlanish", "d:0"),
-    ("🎮 Kompyuter oyinlari", "d:1"),
-    ("👔 Kiyinish", "d:2"),
-    ("🚗 Yo'l haqqi", "d:3"),
-    ("💸 Qarz berish", "d:4"),
-    ("🏠 Uy-ro'zg'or", "d:5"),
+    ("◌ Ovqat", "d:0"),
+    ("◌ O'yinlar", "d:1"),
+    ("◌ Kiyim", "d:2"),
+    ("◌ Yo'l", "d:3"),
+    ("◌ Qarz", "d:4"),
+    ("◌ Uy", "d:5"),
 ]
 
 
@@ -92,18 +96,18 @@ async def build_main_keyboard(db: Database, user_id: int) -> InlineKeyboardMarku
         rows.append(row)
 
     rows.append([
-        InlineKeyboardButton(text="➕ Kategoriya qo'shish", callback_data="add_category"),
-        InlineKeyboardButton(text="⚙️ Boshqarish", callback_data="manage_cats"),
+        InlineKeyboardButton(text="◇ Bugun", callback_data="report_daily"),
+        InlineKeyboardButton(text="◇ Hafta", callback_data="report_weekly"),
     ])
     rows.append([
-        InlineKeyboardButton(text="📊 Bugungi", callback_data="report_daily"),
-        InlineKeyboardButton(text="📅 Haftalik", callback_data="report_weekly"),
+        InlineKeyboardButton(text="◇ Oy", callback_data="report_monthly"),
+        InlineKeyboardButton(text="◇ Yil", callback_data="report_yearly"),
     ])
     rows.append([
-        InlineKeyboardButton(text="🗓️ Oylik", callback_data="report_monthly"),
-        InlineKeyboardButton(text="📆 Yillik", callback_data="report_yearly"),
+        InlineKeyboardButton(text="＋ Kategoriya", callback_data="add_category"),
+        InlineKeyboardButton(text="⚙ Sozlash", callback_data="manage_cats"),
     ])
-    rows.append([InlineKeyboardButton(text="✏️ Harajatni o'chirish/o'zgartirish", callback_data="manage_exp")])
+    rows.append([InlineKeyboardButton(text="◈ Xarajatlarni boshqarish", callback_data="manage_exp")])
 
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -116,11 +120,11 @@ async def cmd_start(message: Message, db: Database, state: FSMContext):
     name = message.from_user.first_name or "Do'stim"
     keyboard = await build_main_keyboard(db, message.from_user.id)
     await message.answer(
-        f"👋 Salom, {name}!\n\n💰 <b>Xarajat turini tanlang:</b>",
+        f"👋 Salom, <b>{name}</b>!\n\n{MAIN_MENU_TEXT}",
         parse_mode="HTML",
         reply_markup=get_start_button()
     )
-    await message.answer("📋 Kategoriyalar:", reply_markup=keyboard)
+    await message.answer("Quyidagilardan birini tanlang:", reply_markup=keyboard)
 
 
 @router.message(Command("menu"))
@@ -171,7 +175,9 @@ async def category_selected(callback: CallbackQuery, db: Database, state: FSMCon
     await state.update_data(category=category)
 
     await callback.message.edit_text(
-        f"{category}\n\n💵 <b>Summani kiriting:</b>\n<i>(masalan: 50000, 50k yoki 60000+50000+80000)</i>",
+        f"<b>{category}</b>\n\n"
+        "💵 Summani yuboring:\n"
+        "<i>50000, 50k yoki 60000+50000+80000</i>",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="back_main")]
@@ -203,7 +209,9 @@ async def handle_amount(message: Message, db: Database, state: FSMContext):
 
     keyboard = await build_main_keyboard(db, message.from_user.id)
     await message.answer(
-        f"✅ <b>Saqlandi!</b>\n\n{category}\n💵 Summa: <b>{amount:,.0f} so'm</b>",
+        f"✅ <b>Xarajat saqlandi</b>\n\n"
+        f"{category}\n"
+        f"💵 <b>{amount:,.0f} so'm</b>",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="↩️ Bekor qilish", callback_data=f"undo:{expense_id}")]
@@ -218,7 +226,9 @@ async def handle_amount(message: Message, db: Database, state: FSMContext):
 async def add_category_start(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ExpenseState.waiting_category_name)
     await callback.message.edit_text(
-        "➕ <b>Yangi kategoriya qo'shish</b>\n\nKategoriya nomini kiriting:\n<i>(masalan: 🏋️ Fitness yoki 📚 Kitoblar)</i>",
+        "➕ <b>Yangi kategoriya</b>\n\n"
+        "Kategoriya nomini yuboring.\n"
+        "<i>Masalan: 🏋️ Fitness yoki 📚 Kitoblar</i>",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="back_main")]
@@ -243,7 +253,7 @@ async def handle_category_name(message: Message, db: Database, state: FSMContext
 
     keyboard = await build_main_keyboard(db, message.from_user.id)
     await message.answer(
-        f"✅ <b>'{name}' kategoriyasi qo'shildi!</b>",
+        f"✅ <b>Kategoriya qo'shildi</b>\n\n{name}",
         parse_mode="HTML",
         reply_markup=keyboard
     )
@@ -388,18 +398,18 @@ async def handle_edit_category_name(message: Message, db: Database, state: FSMCo
     )
 
 
-# ── Harajatlarni boshqarish (o'chirish / o'zgartirish) ───────────────────────
+# ── Xarajatlarni boshqarish (o'chirish / o'zgartirish) ───────────────────────
 
 @router.callback_query(F.data == "manage_exp")
 async def manage_expenses(callback: CallbackQuery, db: Database):
     expenses = await db.get_recent_expenses(callback.from_user.id, limit=15)
 
     if not expenses:
-        await callback.answer("❌ Hech qanday harajat topilmadi.", show_alert=True)
+        await callback.answer("❌ Hech qanday xarajat topilmadi.", show_alert=True)
         return
 
     await callback.message.edit_text(
-        "📋 <b>Harajatni tanlang:</b>",
+        "🧾 <b>Xarajatlar</b>\n\nO'chirish yoki o'zgartirish uchun xarajat tanlang.",
         parse_mode="HTML",
         reply_markup=build_expenses_keyboard(expenses)
     )
@@ -412,14 +422,14 @@ async def expense_options(callback: CallbackQuery, db: Database):
     exp = await db.get_expense_by_id(expense_id, callback.from_user.id)
 
     if not exp:
-        await callback.answer("❌ Harajat topilmadi.", show_alert=True)
+        await callback.answer("❌ Xarajat topilmadi.", show_alert=True)
         return
 
     dt = datetime.fromisoformat(exp["created_at"]).strftime("%d.%m.%Y %H:%M")
     await callback.message.edit_text(
         f"<b>{exp['category']}</b>\n"
-        f"💵 Summa: <b>{exp['amount']:,.0f} so'm</b>\n"
-        f"📅 Sana: {dt}\n\nNima qilmoqchisiz?",
+        f"💵 <b>{exp['amount']:,.0f} so'm</b>\n"
+        f"📅 {dt}\n\nNima qilmoqchisiz?",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [
@@ -441,12 +451,12 @@ async def delete_expense(callback: CallbackQuery, db: Database):
     if not expenses:
         keyboard = await build_main_keyboard(db, callback.from_user.id)
         await callback.message.edit_text(
-            "🗑️ <b>Harajat o'chirildi.</b>\n\nBoshqa harajat yo'q.",
+            "🗑️ <b>Xarajat o'chirildi</b>\n\nBoshqa xarajat yo'q.",
             parse_mode="HTML", reply_markup=keyboard
         )
     else:
         await callback.message.edit_text(
-            "🗑️ O'chirildi.\n\n📋 <b>Harajatni tanlang:</b>",
+            "🗑️ O'chirildi\n\n🧾 <b>Xarajatlar</b>",
             parse_mode="HTML",
             reply_markup=build_expenses_keyboard(expenses)
         )
@@ -501,7 +511,7 @@ async def undo_expense(callback: CallbackQuery, db: Database):
     expense_id = int(callback.data[5:])
     deleted = await db.delete_expense_by_id(expense_id, callback.from_user.id)
     if deleted:
-        await callback.message.edit_text("🗑️ <b>Harajat bekor qilindi.</b>", parse_mode="HTML")
+        await callback.message.edit_text("🗑️ <b>Xarajat bekor qilindi.</b>", parse_mode="HTML")
     else:
         await callback.answer("❌ Allaqachon o'chirilgan.", show_alert=True)
     await callback.answer()

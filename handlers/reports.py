@@ -15,26 +15,33 @@ logger = logging.getLogger(__name__)
 
 def format_report(summary: dict, title: str) -> str:
     if summary["count"] == 0:
-        return f"📭 <b>{title}</b>\n\nHarajatlar topilmadi."
+        return (
+            f"◇ <b>{title}</b>\n"
+            f"◌ {summary['start_date'].strftime('%d.%m.%Y')} - {summary['end_date'].strftime('%d.%m.%Y')}\n\n"
+            "Bu davrda xarajat topilmadi."
+        )
 
     lines = [
-        f"📊 <b>{title}</b>",
-        f"📅 {summary['start_date'].strftime('%d.%m.%Y')} — {summary['end_date'].strftime('%d.%m.%Y')}",
-        f"",
-        f"💵 <b>Jami: {summary['total']:,.0f} so'm</b>",
-        f"📝 Yozuvlar soni: {summary['count']} ta",
-        f"",
-        f"📂 <b>Kategoriyalar bo'yicha:</b>",
+        f"◇ <b>{title}</b>",
+        f"◌ {summary['start_date'].strftime('%d.%m.%Y')} - {summary['end_date'].strftime('%d.%m.%Y')}",
+        "",
+        "╭────────────────",
+        f"│ Jami: <b>{summary['total']:,.0f} so'm</b>",
+        f"│ Yozuvlar: <b>{summary['count']} ta</b>",
+        "╰────────────────",
+        "",
+        "◈ <b>Kategoriyalar</b>",
     ]
 
     total = summary["total"]
     for cat in summary["categories"]:
         percent = (cat["total"] / total * 100) if total > 0 else 0
-        bar = "█" * int(percent / 10) + "░" * (10 - int(percent / 10))
+        filled = round(percent / 10)
+        bar = "▰" * filled + "▱" * (10 - filled)
         lines.append(
-            f"\n{cat['category']}\n"
-            f"  {bar} {percent:.0f}%\n"
-            f"  💰 {cat['total']:,.0f} so'm ({cat['count']} ta)"
+            f"\n<b>{cat['category']}</b>\n"
+            f"{bar} <b>{percent:.0f}%</b>\n"
+            f"◌ {cat['total']:,.0f} so'm · {cat['count']} ta"
         )
 
     return "\n".join(lines)
@@ -43,14 +50,14 @@ def format_report(summary: dict, title: str) -> str:
 def get_report_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="📊 Bugungi", callback_data="report_daily"),
-            InlineKeyboardButton(text="📅 Haftalik", callback_data="report_weekly"),
+            InlineKeyboardButton(text="◇ Bugun", callback_data="report_daily"),
+            InlineKeyboardButton(text="◇ Hafta", callback_data="report_weekly"),
         ],
         [
-            InlineKeyboardButton(text="🗓️ Oylik", callback_data="report_monthly"),
-            InlineKeyboardButton(text="📆 Yillik", callback_data="report_yearly"),
+            InlineKeyboardButton(text="◇ Oy", callback_data="report_monthly"),
+            InlineKeyboardButton(text="◇ Yil", callback_data="report_yearly"),
         ],
-        [InlineKeyboardButton(text="◀️ Asosiy menyu", callback_data="back_main")],
+        [InlineKeyboardButton(text="◌ Menyu", callback_data="back_main")],
     ])
 
 
@@ -58,7 +65,7 @@ def get_report_keyboard() -> InlineKeyboardMarkup:
 async def report_daily(callback: CallbackQuery, db: Database):
     today = date.today()
     summary = await db.get_summary(callback.from_user.id, today, today)
-    text = format_report(summary, "Bugungi Hisobot")
+    text = format_report(summary, "Bugungi hisobot")
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=get_report_keyboard())
     await callback.answer()
 
@@ -68,7 +75,7 @@ async def report_weekly(callback: CallbackQuery, db: Database):
     end = date.today()
     start = end - timedelta(days=6)
     summary = await db.get_summary(callback.from_user.id, start, end)
-    text = format_report(summary, "Haftalik Hisobot (7 kun)")
+    text = format_report(summary, "Haftalik hisobot")
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=get_report_keyboard())
     await callback.answer()
 
@@ -81,7 +88,7 @@ async def report_monthly(callback: CallbackQuery, db: Database):
     end = today.replace(day=last_day)
     summary = await db.get_summary(callback.from_user.id, start, end)
     month_name = today.strftime("%B %Y")
-    text = format_report(summary, f"Oylik Hisobot ({month_name})")
+    text = format_report(summary, f"Oylik hisobot ({month_name})")
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=get_report_keyboard())
     await callback.answer()
 
@@ -92,6 +99,6 @@ async def report_yearly(callback: CallbackQuery, db: Database):
     start = today.replace(month=1, day=1)
     end = today.replace(month=12, day=31)
     summary = await db.get_summary(callback.from_user.id, start, end)
-    text = format_report(summary, f"Yillik Hisobot ({today.year})")
+    text = format_report(summary, f"Yillik hisobot ({today.year})")
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=get_report_keyboard())
     await callback.answer()
