@@ -5,7 +5,7 @@ Telegram orqali shaxsiy xarajatlarni tez kiritish va hisobot olish uchun kichik 
 ## Imkoniyatlar
 
 - Menyu orqali xarajat kategoriyasini tanlash
-- Summa kiritish: `50000`, `50k`, `12.5k`
+- Summa kiritish: `50000`, `50k`, `12.5k`, `60000+50000+80000`
 - Maxsus kategoriyalar qo'shish, o'zgartirish va o'chirish
 - Default kategoriyalarni yashirish yoki qayta ko'rsatish
 - Oxirgi xarajatlarni o'chirish yoki summasini o'zgartirish

@@ -46,11 +46,18 @@ def get_start_button() -> ReplyKeyboardMarkup:
 
 
 def parse_amount(text: str) -> float | None:
-    t = text.strip().lower().replace(" ", "").replace(",", ".")
+    parts = text.strip().lower().replace(" ", "").replace(",", ".").split("+")
+    if not parts or any(not part for part in parts):
+        return None
+
+    total = 0.0
     try:
-        if t.endswith("k"):
-            return float(t[:-1]) * 1000
-        return float(t)
+        for part in parts:
+            if part.endswith("k"):
+                total += float(part[:-1]) * 1000
+            else:
+                total += float(part)
+        return total
     except ValueError:
         return None
 
@@ -164,7 +171,7 @@ async def category_selected(callback: CallbackQuery, db: Database, state: FSMCon
     await state.update_data(category=category)
 
     await callback.message.edit_text(
-        f"{category}\n\n💵 <b>Summani kiriting:</b>\n<i>(masalan: 50000 yoki 50k)</i>",
+        f"{category}\n\n💵 <b>Summani kiriting:</b>\n<i>(masalan: 50000, 50k yoki 60000+50000+80000)</i>",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="back_main")]
@@ -179,7 +186,7 @@ async def handle_amount(message: Message, db: Database, state: FSMContext):
 
     if amount is None or amount <= 0:
         await message.answer(
-            "❌ Noto'g'ri format. Faqat musbat son kiriting.\n<i>Masalan: 50000 yoki 50k</i>",
+            "❌ Noto'g'ri format. Faqat musbat son kiriting.\n<i>Masalan: 50000, 50k yoki 60000+50000+80000</i>",
             parse_mode="HTML"
         )
         return
@@ -452,7 +459,7 @@ async def edit_expense_start(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ExpenseState.waiting_edit_amount)
     await state.update_data(edit_expense_id=expense_id)
     await callback.message.edit_text(
-        "✏️ <b>Yangi summani kiriting:</b>\n<i>(masalan: 50000 yoki 50k)</i>",
+        "✏️ <b>Yangi summani kiriting:</b>\n<i>(masalan: 50000, 50k yoki 60000+50000+80000)</i>",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="back_main")]
@@ -467,7 +474,7 @@ async def handle_edit_amount(message: Message, db: Database, state: FSMContext):
 
     if amount is None or amount <= 0:
         await message.answer(
-            "❌ Noto'g'ri format.\n<i>Masalan: 50000 yoki 50k</i>",
+            "❌ Noto'g'ri format.\n<i>Masalan: 50000, 50k yoki 60000+50000+80000</i>",
             parse_mode="HTML"
         )
         return
