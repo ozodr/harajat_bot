@@ -1,85 +1,73 @@
-# 💰 Moliyaviy Harajat Telegram Boti
+# Finance Bot
 
-AI yordamida shaxsiy moliyaviy harajatlarni kuzatuvchi Telegram bot.
+Telegram orqali shaxsiy xarajatlarni tez kiritish va hisobot olish uchun kichik bot.
 
-## 🌟 Imkoniyatlar
+## Imkoniyatlar
 
-- 📝 **Matnli kiritish** — harajatni oddiy so'zlarda yozing
-- 🎤 **Ovozli kiritish** — ovozli xabar yuboring, AI matnga aylantiradi
-- 🤖 **AI kategoriyalash** — Claude AI avtomatik tur belgilaydi
-- 📊 **Hisobotlar** — kunlik, haftalik, oylik, yillik statistika
-- 🗑️ **O'chirish** — oxirgi yozuvni bekor qilish
+- Menyu orqali xarajat kategoriyasini tanlash
+- Summa kiritish: `50000`, `50k`, `12.5k`
+- Maxsus kategoriyalar qo'shish, o'zgartirish va o'chirish
+- Default kategoriyalarni yashirish yoki qayta ko'rsatish
+- Oxirgi xarajatlarni o'chirish yoki summasini o'zgartirish
+- Kunlik, haftalik, oylik va yillik hisobotlar
+- SQLite bazada ma'lumot saqlash
 
-## 🚀 O'rnatish
+## O'rnatish
 
-### 1. Kutubxonalarni o'rnatish
+1. Kutubxonalarni o'rnating:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. API kalitlarni sozlash
-`.env.example` faylini `.env` nomi bilan nusxalang:
+2. `.env.example` faylidan `.env` yarating:
+
 ```bash
 cp .env.example .env
 ```
 
-`.env` faylini tahrirlang:
-```
-BOT_TOKEN=your_telegram_bot_token
-ANTHROPIC_API_KEY=your_anthropic_key
-OPENAI_API_KEY=your_openai_key  # ixtiyoriy
+Windows PowerShell uchun:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
-### 3. API kalitlarni olish
-| Xizmat | Havola | Maqsad |
-|--------|--------|--------|
-| Telegram Bot | [@BotFather](https://t.me/BotFather) | Bot yaratish |
-| Anthropic | [console.anthropic.com](https://console.anthropic.com) | Matn tahlili |
-| OpenAI | [platform.openai.com](https://platform.openai.com) | Ovozni matnga (ixtiyoriy) |
+3. `.env` ichiga Telegram bot tokenini yozing:
 
-### 4. Botni ishga tushirish
+```env
+BOT_TOKEN=your_telegram_bot_token_here
+DATABASE_PATH=finance.db
+```
+
+4. Botni ishga tushiring:
+
 ```bash
 python bot.py
 ```
 
-## 📁 Loyiha tuzilmasi
+## Telegram bot token olish
 
-```
+Telegramda [@BotFather](https://t.me/BotFather) orqali yangi bot yarating va tokenni `.env` fayliga yozing.
+
+## Loyiha tuzilmasi
+
+```text
 finance_bot/
-├── bot.py              # Asosiy fayl
-├── config.py           # Sozlamalar
-├── requirements.txt    # Kutubxonalar
-├── .env               # API kalitlar (gitga qo'shmang!)
+├── bot.py                 # Botni ishga tushirish
+├── config.py              # Muhit sozlamalari
+├── requirements.txt       # Python kutubxonalari
+├── render.yaml            # Render worker sozlamasi
 ├── handlers/
-│   ├── expenses.py    # Harajat qo'shish
-│   ├── reports.py     # Hisobotlar
-│   └── voice.py       # Ovozli xabar
+│   ├── expenses.py        # Xarajat va kategoriya handlerlari
+│   └── reports.py         # Hisobot handlerlari
 └── services/
-    ├── database.py    # SQLite baza
-    └── ai_service.py  # Claude AI
+    └── database.py        # SQLite amallari
 ```
 
-## 💡 Foydalanish misollari
+## Deploy
 
-```
-Non uchun 5000 so'm sarfladim
-Taksi 15000
-Kino 80k
-Aptekada dori 45000
-```
+`render.yaml` Render worker sifatida sozlangan. Render dashboardida `BOT_TOKEN` environment variable sifatida kiritiladi. Bazani saqlash uchun `/var/data/finance.db` disk path ishlatiladi.
 
-Yoki ovozli xabar yuboring!
+## Eslatma
 
-## 🏷️ Kategoriyalar
-
-Bot quyidagi kategoriyalarni avtomatik aniqlaydi:
-- 🍔 Oziq-ovqat
-- 🚗 Transport  
-- 🏠 Uy-joy
-- 👕 Kiyim
-- 💊 Salomatlik
-- 🎓 Ta'lim
-- 🎮 Ko'ngil ochar
-- 📱 Texnologiya
-- 🍽️ Restoran/Kafe
-- va boshqalar...
+AI va ovozli xabar qismlari loyihadan olib tashlangan. Hozirgi versiya oddiy, tez va barqaror menyu-asosli xarajat kuzatuvchi bot sifatida ishlaydi.

@@ -42,6 +42,18 @@ class Database:
                     PRIMARY KEY (user_id, category_ref)
                 )
             """)
+            await db.execute("""
+                CREATE INDEX IF NOT EXISTS idx_expenses_user_created
+                ON expenses (user_id, created_at)
+            """)
+            await db.execute("""
+                CREATE INDEX IF NOT EXISTS idx_expenses_user_category
+                ON expenses (user_id, category)
+            """)
+            await db.execute("""
+                CREATE INDEX IF NOT EXISTS idx_custom_categories_user_created
+                ON custom_categories (user_id, created_at)
+            """)
             await db.commit()
         logger.info("✅ Database tayyor")
 

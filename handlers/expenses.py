@@ -14,6 +14,13 @@ from services.database import Database
 router = Router()
 logger = logging.getLogger(__name__)
 
+MAIN_MENU_TEXT = "📋 <b>Xarajat turini tanlang:</b>"
+MANAGE_CATEGORIES_TEXT = (
+    "⚙️ <b>Kategoriyalarni boshqarish</b>\n\n"
+    "Kategoriyani tanlang:\n"
+    "<i>🚫 — yashirilgan | ✏️ — qo'shilgan</i>"
+)
+
 DEFAULT_CATEGORIES = [
     ("🍽️ Ovqatlanish", "d:0"),
     ("🎮 Kompyuter oyinlari", "d:1"),
@@ -46,6 +53,17 @@ def parse_amount(text: str) -> float | None:
         return float(t)
     except ValueError:
         return None
+
+
+def build_expenses_keyboard(expenses: list[dict], back_callback: str = "back_main") -> InlineKeyboardMarkup:
+    rows = []
+    for exp in expenses:
+        dt = datetime.fromisoformat(exp["created_at"]).strftime("%d.%m %H:%M")
+        label = f"{exp['category']}  {exp['amount']:,.0f} so'm  ({dt})"
+        rows.append([InlineKeyboardButton(text=label, callback_data=f"exp:{exp['id']}")])
+
+    rows.append([InlineKeyboardButton(text="◀️ Orqaga", callback_data=back_callback)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 async def build_main_keyboard(db: Database, user_id: int) -> InlineKeyboardMarkup:
@@ -104,7 +122,7 @@ async def cmd_menu(message: Message, db: Database, state: FSMContext):
     await state.clear()
     keyboard = await build_main_keyboard(db, message.from_user.id)
     await message.answer(
-        "📋 <b>Xarajat turini tanlang:</b>",
+        MAIN_MENU_TEXT,
         parse_mode="HTML",
         reply_markup=keyboard
     )
@@ -115,7 +133,7 @@ async def back_to_main(callback: CallbackQuery, db: Database, state: FSMContext)
     await state.clear()
     keyboard = await build_main_keyboard(db, callback.from_user.id)
     await callback.message.edit_text(
-        "📋 <b>Xarajat turini tanlang:</b>",
+        MAIN_MENU_TEXT,
         parse_mode="HTML",
         reply_markup=keyboard
     )
@@ -184,7 +202,7 @@ async def handle_amount(message: Message, db: Database, state: FSMContext):
             [InlineKeyboardButton(text="↩️ Bekor qilish", callback_data=f"undo:{expense_id}")]
         ])
     )
-    await message.answer("📋 <b>Xarajat turini tanlang:</b>", parse_mode="HTML", reply_markup=keyboard)
+    await message.answer(MAIN_MENU_TEXT, parse_mode="HTML", reply_markup=keyboard)
 
 
 # ── Kategoriya qo'shish ───────────────────────────────────────────────────────
@@ -242,17 +260,19 @@ async def build_manage_cats_keyboard(db: Database, user_id: int) -> InlineKeyboa
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-@router.callback_query(F.data == "manage_cats")
-async def manage_categories(callback: CallbackQuery, db: Database):
+async def show_manage_categories(callback: CallbackQuery, db: Database, answer_text: str | None = None):
     keyboard = await build_manage_cats_keyboard(db, callback.from_user.id)
     await callback.message.edit_text(
-        "⚙️ <b>Kategoriyalarni boshqarish</b>\n\n"
-        "Kategoriyani tanlang:\n"
-        "<i>🚫 — yashirilgan | ✏️ — qo'shilgan</i>",
+        MANAGE_CATEGORIES_TEXT,
         parse_mode="HTML",
         reply_markup=keyboard
     )
-    await callback.answer()
+    await callback.answer(answer_text)
+
+
+@router.callback_query(F.data == "manage_cats")
+async def manage_categories(callback: CallbackQuery, db: Database):
+    await show_manage_categories(callback, db)
 
 
 @router.callback_query(F.data.startswith("cat_opt:"))
@@ -305,45 +325,21 @@ async def category_options(callback: CallbackQuery, db: Database):
 async def hide_category(callback: CallbackQuery, db: Database):
     ref = callback.data[9:]
     await db.hide_default_category(callback.from_user.id, ref)
-    keyboard = await build_manage_cats_keyboard(db, callback.from_user.id)
-    await callback.message.edit_text(
-        "⚙️ <b>Kategoriyalarni boshqarish</b>\n\n"
-        "Kategoriyani tanlang:\n"
-        "<i>🚫 — yashirilgan | ✏️ — qo'shilgan</i>",
-        parse_mode="HTML",
-        reply_markup=keyboard
-    )
-    await callback.answer("🚫 Yashirildi")
+    await show_manage_categories(callback, db, "🚫 Yashirildi")
 
 
 @router.callback_query(F.data.startswith("show_cat:"))
 async def show_category(callback: CallbackQuery, db: Database):
     ref = callback.data[9:]
     await db.show_default_category(callback.from_user.id, ref)
-    keyboard = await build_manage_cats_keyboard(db, callback.from_user.id)
-    await callback.message.edit_text(
-        "⚙️ <b>Kategoriyalarni boshqarish</b>\n\n"
-        "Kategoriyani tanlang:\n"
-        "<i>🚫 — yashirilgan | ✏️ — qo'shilgan</i>",
-        parse_mode="HTML",
-        reply_markup=keyboard
-    )
-    await callback.answer("👁️ Ko'rsatildi")
+    await show_manage_categories(callback, db, "👁️ Ko'rsatildi")
 
 
 @router.callback_query(F.data.startswith("del_cat:c:"))
 async def delete_category(callback: CallbackQuery, db: Database):
     cat_id = int(callback.data[10:])
     await db.delete_custom_category(cat_id, callback.from_user.id)
-    keyboard = await build_manage_cats_keyboard(db, callback.from_user.id)
-    await callback.message.edit_text(
-        "⚙️ <b>Kategoriyalarni boshqarish</b>\n\n"
-        "Kategoriyani tanlang:\n"
-        "<i>🚫 — yashirilgan | ✏️ — qo'shilgan</i>",
-        parse_mode="HTML",
-        reply_markup=keyboard
-    )
-    await callback.answer("🗑️ O'chirildi")
+    await show_manage_categories(callback, db, "🗑️ O'chirildi")
 
 
 @router.callback_query(F.data.startswith("edit_cat:c:"))
@@ -395,17 +391,10 @@ async def manage_expenses(callback: CallbackQuery, db: Database):
         await callback.answer("❌ Hech qanday harajat topilmadi.", show_alert=True)
         return
 
-    rows = []
-    for exp in expenses:
-        dt = datetime.fromisoformat(exp["created_at"]).strftime("%d.%m %H:%M")
-        label = f"{exp['category']}  {exp['amount']:,.0f} so'm  ({dt})"
-        rows.append([InlineKeyboardButton(text=label, callback_data=f"exp:{exp['id']}")])
-
-    rows.append([InlineKeyboardButton(text="◀️ Orqaga", callback_data="back_main")])
     await callback.message.edit_text(
         "📋 <b>Harajatni tanlang:</b>",
         parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows)
+        reply_markup=build_expenses_keyboard(expenses)
     )
     await callback.answer()
 
@@ -449,16 +438,10 @@ async def delete_expense(callback: CallbackQuery, db: Database):
             parse_mode="HTML", reply_markup=keyboard
         )
     else:
-        rows = []
-        for exp in expenses:
-            dt = datetime.fromisoformat(exp["created_at"]).strftime("%d.%m %H:%M")
-            label = f"{exp['category']}  {exp['amount']:,.0f} so'm  ({dt})"
-            rows.append([InlineKeyboardButton(text=label, callback_data=f"exp:{exp['id']}")])
-        rows.append([InlineKeyboardButton(text="◀️ Orqaga", callback_data="back_main")])
         await callback.message.edit_text(
             "🗑️ O'chirildi.\n\n📋 <b>Harajatni tanlang:</b>",
             parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=rows)
+            reply_markup=build_expenses_keyboard(expenses)
         )
     await callback.answer("🗑️ O'chirildi")
 
@@ -527,7 +510,7 @@ async def any_text(message: Message, db: Database, state: FSMContext):
 
     keyboard = await build_main_keyboard(db, message.from_user.id)
     await message.answer(
-        "📋 <b>Xarajat turini tanlang:</b>",
+        MAIN_MENU_TEXT,
         parse_mode="HTML",
         reply_markup=get_start_button()
     )
