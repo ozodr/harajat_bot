@@ -14,24 +14,20 @@ from services.database import Database
 router = Router()
 logger = logging.getLogger(__name__)
 
-MAIN_MENU_TEXT = (
-    "◌ <b>Xarajat paneli</b>\n\n"
-    "Kategoriyani tanlang, keyin summani yuboring.\n"
-    "<i>Masalan: 50000, 50k yoki 60000+50000</i>"
-)
+MAIN_MENU_TEXT = "📋 <b>Xarajat turini tanlang:</b>"
 MANAGE_CATEGORIES_TEXT = (
-    "◇ <b>Kategoriyalar</b>\n\n"
-    "Tahrirlash yoki yashirish uchun kategoriya tanlang.\n"
+    "⚙️ <b>Kategoriyalarni boshqarish</b>\n\n"
+    "Kategoriyani tanlang:\n"
     "<i>🚫 — yashirilgan | ✏️ — qo'shilgan</i>"
 )
 
 DEFAULT_CATEGORIES = [
-    ("◌ Ovqat", "d:0"),
-    ("◌ O'yinlar", "d:1"),
-    ("◌ Kiyim", "d:2"),
-    ("◌ Yo'l", "d:3"),
-    ("◌ Qarz", "d:4"),
-    ("◌ Uy", "d:5"),
+    ("🍽️ Ovqatlanish", "d:0"),
+    ("🎮 Kompyuter oyinlari", "d:1"),
+    ("👔 Kiyinish", "d:2"),
+    ("🚗 Yo'l haqqi", "d:3"),
+    ("💸 Qarz berish", "d:4"),
+    ("🏠 Uy-ro'zg'or", "d:5"),
 ]
 
 
@@ -96,18 +92,18 @@ async def build_main_keyboard(db: Database, user_id: int) -> InlineKeyboardMarku
         rows.append(row)
 
     rows.append([
-        InlineKeyboardButton(text="◇ Bugun", callback_data="report_daily"),
-        InlineKeyboardButton(text="◇ Hafta", callback_data="report_weekly"),
+        InlineKeyboardButton(text="➕ Kategoriya qo'shish", callback_data="add_category"),
+        InlineKeyboardButton(text="⚙️ Boshqarish", callback_data="manage_cats"),
     ])
     rows.append([
-        InlineKeyboardButton(text="◇ Oy", callback_data="report_monthly"),
-        InlineKeyboardButton(text="◇ Yil", callback_data="report_yearly"),
+        InlineKeyboardButton(text="📊 Bugungi", callback_data="report_daily"),
+        InlineKeyboardButton(text="📅 Haftalik", callback_data="report_weekly"),
     ])
     rows.append([
-        InlineKeyboardButton(text="＋ Kategoriya", callback_data="add_category"),
-        InlineKeyboardButton(text="⚙ Sozlash", callback_data="manage_cats"),
+        InlineKeyboardButton(text="🗓️ Oylik", callback_data="report_monthly"),
+        InlineKeyboardButton(text="📆 Yillik", callback_data="report_yearly"),
     ])
-    rows.append([InlineKeyboardButton(text="◈ Xarajatlarni boshqarish", callback_data="manage_exp")])
+    rows.append([InlineKeyboardButton(text="✏️ Harajatni o'chirish/o'zgartirish", callback_data="manage_exp")])
 
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -120,11 +116,11 @@ async def cmd_start(message: Message, db: Database, state: FSMContext):
     name = message.from_user.first_name or "Do'stim"
     keyboard = await build_main_keyboard(db, message.from_user.id)
     await message.answer(
-        f"👋 Salom, <b>{name}</b>!\n\n{MAIN_MENU_TEXT}",
+        f"👋 Salom, {name}!\n\n💰 <b>Xarajat turini tanlang:</b>",
         parse_mode="HTML",
         reply_markup=get_start_button()
     )
-    await message.answer("Quyidagilardan birini tanlang:", reply_markup=keyboard)
+    await message.answer("📋 Kategoriyalar:", reply_markup=keyboard)
 
 
 @router.message(Command("menu"))
