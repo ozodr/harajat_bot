@@ -45,6 +45,10 @@ async def main():
     dp.include_router(expenses.router)
     dp.include_router(reports.router)
 
+    # Server birinchi ko'tariladi: healthcheck Telegram API tezligiga
+    # bog'liq bo'lib qolmasligi uchun.
+    runner = await start_webapp(db, PORT)
+
     await bot.set_my_commands([
         BotCommand(command="start", description="Botni ishga tushirish"),
         BotCommand(command="menu", description="Menyuni ko'rish"),
@@ -52,7 +56,6 @@ async def main():
     ])
     await setup_menu_button(bot)
 
-    runner = await start_webapp(db, PORT)
     logger.info("🤖 Bot ishga tushmoqda...")
 
     try:

@@ -14,7 +14,10 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN muhit o'zgaruvchisi o'rnatilmagan!")
+    raise ValueError(
+        "BOT_TOKEN o'rnatilmagan! Lokalda .env fayliga yozing, "
+        "Railway'da esa Service -> Variables bo'limiga qo'shing."
+    )
 
 # ── Baza ─────────────────────────────────────────────────────────────────────
 # Volume ulangan bo'lsa baza o'sha yerda saqlanadi, aks holda joriy papkada.
