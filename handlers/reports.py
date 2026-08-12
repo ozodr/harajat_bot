@@ -2,12 +2,11 @@
 📊 Hisobotlar handleri
 """
 import logging
-from datetime import date, timedelta
-from calendar import monthrange
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 from services.database import Database
+from services.periods import period_range
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -54,44 +53,17 @@ def get_report_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-@router.callback_query(F.data == "report_daily")
-async def report_daily(callback: CallbackQuery, db: Database):
-    today = date.today()
-    summary = await db.get_summary(callback.from_user.id, today, today)
-    text = format_report(summary, "Bugungi Hisobot")
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=get_report_keyboard())
-    await callback.answer()
+@router.callback_query(F.data.startswith("report_"))
+async def show_report(callback: CallbackQuery, db: Database):
+    period = callback.data[len("report_"):]
 
+    try:
+        start, end, title = period_range(period)
+    except ValueError:
+        await callback.answer("Noma'lum hisobot turi.", show_alert=True)
+        return
 
-@router.callback_query(F.data == "report_weekly")
-async def report_weekly(callback: CallbackQuery, db: Database):
-    end = date.today()
-    start = end - timedelta(days=6)
     summary = await db.get_summary(callback.from_user.id, start, end)
-    text = format_report(summary, "Haftalik Hisobot (7 kun)")
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=get_report_keyboard())
-    await callback.answer()
-
-
-@router.callback_query(F.data == "report_monthly")
-async def report_monthly(callback: CallbackQuery, db: Database):
-    today = date.today()
-    start = today.replace(day=1)
-    last_day = monthrange(today.year, today.month)[1]
-    end = today.replace(day=last_day)
-    summary = await db.get_summary(callback.from_user.id, start, end)
-    month_name = today.strftime("%B %Y")
-    text = format_report(summary, f"Oylik Hisobot ({month_name})")
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=get_report_keyboard())
-    await callback.answer()
-
-
-@router.callback_query(F.data == "report_yearly")
-async def report_yearly(callback: CallbackQuery, db: Database):
-    today = date.today()
-    start = today.replace(month=1, day=1)
-    end = today.replace(month=12, day=31)
-    summary = await db.get_summary(callback.from_user.id, start, end)
-    text = format_report(summary, f"Yillik Hisobot ({today.year})")
+    text = format_report(summary, title)
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=get_report_keyboard())
     await callback.answer()

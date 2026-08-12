@@ -148,6 +148,20 @@ class Database:
             "end_date": end_date
         }
 
+    async def get_daily_totals(self, user_id: int, start_date: date, end_date: date) -> list[dict]:
+        """Kunlar kesimidagi jami summalar (grafik uchun)"""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute("""
+                SELECT DATE(created_at) as day, SUM(amount) as total
+                FROM expenses
+                WHERE user_id = ?
+                AND DATE(created_at) BETWEEN ? AND ?
+                GROUP BY day
+                ORDER BY day
+            """, (user_id, start_date.isoformat(), end_date.isoformat()))
+            rows = await cursor.fetchall()
+            return [{"day": row[0], "total": row[1]} for row in rows]
+
     async def get_hidden_defaults(self, user_id: int) -> set:
         """Yashirilgan default kategoriyalar ro'yxati"""
         async with aiosqlite.connect(self.db_path) as db:

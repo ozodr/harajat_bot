@@ -1,0 +1,509 @@
+/* ══════════════════════════════════════════════════════════════════
+   Finance Tracker Mini App — uslublar
+   Ranglar bot vazifalariga mos: bitta akcent (ko'k) + status ranglari
+   ══════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+  --plane:        #f9f9f7;
+  --surface:      #fcfcfb;
+  --surface-2:    #f1f0ec;
+  --ink:          #0b0b0b;
+  --ink-2:        #52514e;
+  --muted:        #898781;
+  --grid:         #e1e0d9;
+  --border:       rgba(11, 11, 11, 0.10);
+  --accent:       #2a78d6;
+  --accent-soft:  #cde2fb;
+  --accent-ink:   #ffffff;
+  --danger:       #d03b3b;
+  --good:         #0ca30c;
+  --shadow:       0 1px 2px rgba(11, 11, 11, 0.06), 0 8px 24px rgba(11, 11, 11, 0.05);
+  --radius:       16px;
+  --radius-sm:    10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --plane:       #0d0d0d;
+    --surface:     #1a1a19;
+    --surface-2:   #242423;
+    --ink:         #ffffff;
+    --ink-2:       #c3c2b7;
+    --muted:       #898781;
+    --grid:        #2c2c2a;
+    --border:      rgba(255, 255, 255, 0.10);
+    --accent:      #3987e5;
+    --accent-soft: #184f95;
+    --accent-ink:  #ffffff;
+    --danger:      #d03b3b;
+    --good:        #0ca30c;
+    --shadow:      0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --plane:       #0d0d0d;
+  --surface:     #1a1a19;
+  --surface-2:   #242423;
+  --ink:         #ffffff;
+  --ink-2:       #c3c2b7;
+  --muted:       #898781;
+  --grid:        #2c2c2a;
+  --border:      rgba(255, 255, 255, 0.10);
+  --accent:      #3987e5;
+  --accent-soft: #184f95;
+  --accent-ink:  #ffffff;
+  --danger:      #d03b3b;
+  --good:        #0ca30c;
+  --shadow:      0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--plane);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  overscroll-behavior-y: none;
+}
+
+.hidden { display: none !important; }
+
+/* ── Yuklanish / ogohlantirish ───────────────────────────────────── */
+
+.loader {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--plane);
+  z-index: 50;
+}
+
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--grid);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.gate {
+  padding: 64px 28px;
+  text-align: center;
+}
+.gate-emoji { font-size: 48px; }
+.gate h2 { margin: 12px 0 8px; font-size: 20px; }
+.gate p { color: var(--ink-2); font-size: 15px; margin: 0; }
+
+/* ── Sahifa karkasi ──────────────────────────────────────────────── */
+
+.app { padding: 0 16px calc(88px + env(safe-area-inset-bottom)); }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 0 16px;
+}
+
+.topbar-hint { font-size: 13px; color: var(--muted); }
+.topbar-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: grid; place-items: center;
+  font-size: 18px;
+  overflow: hidden;
+  flex: none;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.section-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin: 24px 0 10px;
+}
+.section-head h2 { margin: 0; font-size: 16px; font-weight: 650; }
+
+.link-btn {
+  background: none; border: none; padding: 4px 0;
+  color: var(--accent); font-size: 14px; font-weight: 600;
+  font-family: inherit; cursor: pointer;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 20px 0 10px;
+}
+
+/* ── Hero + stat tiles ───────────────────────────────────────────── */
+
+.hero-card { text-align: center; padding: 24px 16px; }
+.hero-label { font-size: 13px; color: var(--muted); }
+.hero-figure {
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 4px 0 2px;
+}
+.hero-unit { font-size: 13px; color: var(--ink-2); }
+
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.tile { padding: 14px; }
+.tile-label { font-size: 12px; color: var(--muted); }
+.tile-value { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; margin-top: 2px; }
+.tile-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ── Ro'yxatlar ──────────────────────────────────────────────────── */
+
+.list { display: flex; flex-direction: column; gap: 8px; }
+
+.row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.row:active { background: var(--surface-2); }
+.row-main { flex: 1; min-width: 0; }
+.row-title {
+  font-weight: 550;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.row-meta { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.row-amount { font-weight: 650; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.row-chevron { color: var(--muted); font-size: 13px; }
+.row.is-hidden .row-title { color: var(--muted); text-decoration: line-through; }
+
+.empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.empty-emoji { font-size: 32px; display: block; margin-bottom: 6px; }
+
+.note {
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+/* ── Kategoriya panjarasi ────────────────────────────────────────── */
+
+.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.cat-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  min-height: 52px;
+  display: flex; align-items: center;
+}
+.cat-chip:active { background: var(--surface-2); }
+.cat-chip.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* ── Summa + klaviatura ──────────────────────────────────────────── */
+
+.amount-card { text-align: center; padding: 18px 16px; }
+.amount-expr {
+  font-size: 13px;
+  color: var(--muted);
+  min-height: 20px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow-x: auto;
+}
+.amount-value {
+  font-size: 32px; font-weight: 700; letter-spacing: -0.02em;
+  margin-top: 2px;
+}
+.amount-value small { font-size: 14px; font-weight: 500; color: var(--ink-2); }
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.key {
+  height: 52px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.key:active { background: var(--accent-soft); }
+.key-soft { font-size: 16px; color: var(--ink-2); background: var(--surface-2); }
+.key-wide { grid-column: span 3; }
+
+/* ── Tugmalar ────────────────────────────────────────────────────── */
+
+.btn {
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 13px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-block { display: block; width: 100%; margin-top: 14px; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:disabled { opacity: 0.4; cursor: default; }
+.btn-secondary { background: var(--surface-2); color: var(--ink); border-color: var(--border); }
+.btn-danger { background: var(--danger); color: #fff; }
+
+.btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+
+/* ── Segment (davr tanlash) ──────────────────────────────────────── */
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 16px;
+}
+.seg {
+  border: none;
+  background: none;
+  border-radius: 7px;
+  padding: 9px 4px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.seg.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Hisobot: grafiklar ──────────────────────────────────────────── */
+
+.report-range {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  margin: -4px 0 12px;
+}
+
+.chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 22px 0 10px;
+}
+
+/* Kategoriya bo'yicha gorizontal ustunlar — bitta rang, kattalik bo'yicha */
+.bars { display: flex; flex-direction: column; gap: 14px; }
+.bar-item { display: flex; flex-direction: column; gap: 5px; }
+.bar-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  font-size: 14px;
+}
+.bar-name { font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-val { color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bar-track {
+  height: 8px;
+  background: var(--grid);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  min-width: 4px;
+  transition: width 0.35s ease;
+}
+.bar-sub { font-size: 12px; color: var(--muted); }
+
+/* Kunlik trend — ustunli grafik */
+.trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+  padding-top: 20px;
+  border-bottom: 1px solid var(--grid);
+}
+.trend-col {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.trend-bar {
+  width: 100%;
+  max-width: 26px;
+  background: var(--accent);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  transition: width 0.2s ease;
+}
+.trend-col.empty-col .trend-bar { background: var(--grid); }
+.trend-col.active .trend-bar { background: var(--ink); }
+
+.trend-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-readout {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-2);
+  min-height: 20px;
+  margin-top: 8px;
+}
+.trend-readout b { color: var(--ink); }
+
+/* ── Tab bar ─────────────────────────────────────────────────────── */
+
+.tabbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  z-index: 20;
+}
+.tab {
+  background: none; border: none;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 0;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--muted);
+  cursor: pointer;
+}
+.tab span { font-size: 20px; line-height: 1; }
+.tab.active { color: var(--accent); }
+
+/* ── Sheet (pastdan chiquvchi oyna) ──────────────────────────────── */
+
+.sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 40;
+  display: flex; align-items: flex-end;
+}
+.sheet {
+  background: var(--surface);
+  width: 100%;
+  border-radius: 20px 20px 0 0;
+  padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+  max-height: 88vh;
+  overflow-y: auto;
+  animation: rise 0.22s ease;
+}
+@keyframes rise { from { transform: translateY(24px); opacity: 0.6; } }
+
+.sheet-grip {
+  width: 36px; height: 4px;
+  background: var(--grid);
+  border-radius: 2px;
+  margin: 4px auto 14px;
+}
+.sheet h3 { margin: 0 0 4px; font-size: 18px; }
+.sheet-meta { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+
+.input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 17px;
+  padding: 13px 14px;
+  margin-top: 4px;
+}
+.input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.input-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+/* ── Toast ───────────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  left: 50%; bottom: calc(92px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--plane);
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 550;
+  z-index: 60;
+  box-shadow: var(--shadow);
+  animation: rise 0.2s ease;
+  max-width: 90vw;
+  text-align: center;
+}

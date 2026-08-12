@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Finance Tracker</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<div id="loader" class="loader">
+  <div class="spinner"></div>
+</div>
+
+<div id="gate" class="gate hidden">
+  <div class="gate-emoji">🔒</div>
+  <h2>Telegram orqali oching</h2>
+  <p>Bu sahifa faqat Telegram Mini App sifatida ishlaydi. Botga qayting va <b>📱 Mini App</b> tugmasini bosing.</p>
+</div>
+
+<main id="app" class="app hidden">
+
+  <!-- ══ ASOSIY ══════════════════════════════════════════════════════ -->
+  <section class="page" data-page="home">
+    <header class="topbar">
+      <div>
+        <div class="topbar-hint">Xush kelibsiz,</div>
+        <h1 class="topbar-title" id="user-name">Do'stim</h1>
+      </div>
+      <div class="avatar" id="avatar">👤</div>
+    </header>
+
+    <div class="card hero-card">
+      <div class="hero-label">Bugungi xarajat</div>
+      <div class="hero-figure" id="home-today">0</div>
+      <div class="hero-unit">so'm</div>
+    </div>
+
+    <div class="tiles">
+      <div class="card tile">
+        <div class="tile-label">Bu hafta</div>
+        <div class="tile-value" id="home-week">0</div>
+        <div class="tile-meta" id="home-week-count">0 ta yozuv</div>
+      </div>
+      <div class="card tile">
+        <div class="tile-label">Bu oy</div>
+        <div class="tile-value" id="home-month">0</div>
+        <div class="tile-meta" id="home-month-count">0 ta yozuv</div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h2>So'nggi xarajatlar</h2>
+      <button class="link-btn" id="toggle-history">Barchasi</button>
+    </div>
+    <div class="list" id="home-list"></div>
+  </section>
+
+  <!-- ══ QO'SHISH ════════════════════════════════════════════════════ -->
+  <section class="page hidden" data-page="add">
+    <header class="topbar">
+      <div>
+        <div class="topbar-hint">Yangi yozuv</div>
+        <h1 class="topbar-title">Xarajat qo'shish</h1>
+      </div>
+    </header>
+
+    <div class="step-label">1 — Kategoriyani tanlang</div>
+    <div class="cat-grid" id="add-cats"></div>
+
+    <div class="step-label">2 — Summani kiriting</div>
+    <div class="card amount-card">
+      <div class="amount-expr" id="amount-expr">&nbsp;</div>
+      <div class="amount-value"><span id="amount-total">0</span> <small>so'm</small></div>
+    </div>
+
+    <div class="keypad" id="keypad">
+      <button class="key" data-key="1">1</button>
+      <button class="key" data-key="2">2</button>
+      <button class="key" data-key="3">3</button>
+      <button class="key" data-key="4">4</button>
+      <button class="key" data-key="5">5</button>
+      <button class="key" data-key="6">6</button>
+      <button class="key" data-key="7">7</button>
+      <button class="key" data-key="8">8</button>
+      <button class="key" data-key="9">9</button>
+      <button class="key key-soft" data-key="000">000</button>
+      <button class="key" data-key="0">0</button>
+      <button class="key key-soft" data-key="back">⌫</button>
+      <button class="key key-wide key-soft" data-key="plus">➕ Yana qo'shish</button>
+    </div>
+
+    <button class="btn btn-primary btn-block" id="save-expense" disabled>💾 Saqlash</button>
+  </section>
+
+  <!-- ══ HISOBOT ═════════════════════════════════════════════════════ -->
+  <section class="page hidden" data-page="report">
+    <header class="topbar">
+      <div>
+        <div class="topbar-hint">Tahlil</div>
+        <h1 class="topbar-title">Hisobot</h1>
+      </div>
+    </header>
+
+    <div class="segmented" id="period-tabs">
+      <button class="seg active" data-period="daily">Bugun</button>
+      <button class="seg" data-period="weekly">Hafta</button>
+      <button class="seg" data-period="monthly">Oy</button>
+      <button class="seg" data-period="yearly">Yil</button>
+    </div>
+
+    <div id="report-body"></div>
+  </section>
+
+  <!-- ══ KATEGORIYALAR ═══════════════════════════════════════════════ -->
+  <section class="page hidden" data-page="cats">
+    <header class="topbar">
+      <div>
+        <div class="topbar-hint">Sozlash</div>
+        <h1 class="topbar-title">Kategoriyalar</h1>
+      </div>
+    </header>
+
+    <div class="card note">
+      <b>🚫</b> yashirilgan kategoriya ro'yxatda ko'rinmaydi.
+      <b>✏️</b> siz qo'shgan kategoriya — nomini o'zgartirish yoki o'chirish mumkin.
+    </div>
+
+    <div class="list" id="cats-list"></div>
+
+    <button class="btn btn-primary btn-block" id="add-cat-btn">➕ Kategoriya qo'shish</button>
+  </section>
+
+  <!-- ══ TAB BAR ═════════════════════════════════════════════════════ -->
+  <nav class="tabbar">
+    <button class="tab active" data-tab="home"><span>🏠</span>Asosiy</button>
+    <button class="tab" data-tab="add"><span>➕</span>Qo'shish</button>
+    <button class="tab" data-tab="report"><span>📊</span>Hisobot</button>
+    <button class="tab" data-tab="cats"><span>⚙️</span>Kategoriya</button>
+  </nav>
+</main>
+
+<!-- ══ SHEET (modal) ═════════════════════════════════════════════════ -->
+<div class="sheet-backdrop hidden" id="sheet-backdrop">
+  <div class="sheet" id="sheet">
+    <div class="sheet-grip"></div>
+    <div id="sheet-content"></div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

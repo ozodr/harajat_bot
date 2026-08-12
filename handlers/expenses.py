@@ -4,11 +4,16 @@
 import logging
 from datetime import datetime
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import (
+    Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton,
+    ReplyKeyboardMarkup, KeyboardButton, WebAppInfo,
+)
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
+from config import WEBAPP_URL
+from services.categories import DEFAULT_CATEGORIES
 from services.database import Database
 
 router = Router()
@@ -21,14 +26,10 @@ MANAGE_CATEGORIES_TEXT = (
     "<i>🚫 — yashirilgan | ✏️ — qo'shilgan</i>"
 )
 
-DEFAULT_CATEGORIES = [
-    ("🍽️ Ovqatlanish", "d:0"),
-    ("🎮 Kompyuter oyinlari", "d:1"),
-    ("👔 Kiyinish", "d:2"),
-    ("🚗 Yo'l haqqi", "d:3"),
-    ("💸 Qarz berish", "d:4"),
-    ("🏠 Uy-ro'zg'or", "d:5"),
-]
+MINI_APP_TEXT = (
+    "📱 <b>Mini App</b>\n\n"
+    "Xarajat qo'shish, tarix va hisobotlar — hammasi bitta ilovada."
+)
 
 
 class ExpenseState(StatesGroup):
@@ -39,10 +40,17 @@ class ExpenseState(StatesGroup):
 
 
 def get_start_button() -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="🏠 Menyu")]],
-        resize_keyboard=True
-    )
+    row = [KeyboardButton(text="🏠 Menyu")]
+    if WEBAPP_URL:
+        row.append(KeyboardButton(text="📱 Mini App", web_app=WebAppInfo(url=WEBAPP_URL)))
+    return ReplyKeyboardMarkup(keyboard=[row], resize_keyboard=True)
+
+
+def get_webapp_button() -> InlineKeyboardButton | None:
+    """Mini App'ni ochuvchi inline tugma (WEBAPP_URL bo'lsa)"""
+    if not WEBAPP_URL:
+        return None
+    return InlineKeyboardButton(text="📱 Mini App'ni ochish", web_app=WebAppInfo(url=WEBAPP_URL))
 
 
 def parse_amount(text: str) -> float | None:
@@ -85,6 +93,10 @@ async def build_main_keyboard(db: Database, user_id: int) -> InlineKeyboardMarku
         all_buttons.append((name, f"cat:c:{cat_id}"))
 
     rows = []
+    webapp_button = get_webapp_button()
+    if webapp_button:
+        rows.append([webapp_button])
+
     for i in range(0, len(all_buttons), 2):
         row = [InlineKeyboardButton(text=all_buttons[i][0], callback_data=all_buttons[i][1])]
         if i + 1 < len(all_buttons):
@@ -132,6 +144,22 @@ async def cmd_menu(message: Message, db: Database, state: FSMContext):
         MAIN_MENU_TEXT,
         parse_mode="HTML",
         reply_markup=keyboard
+    )
+
+
+@router.message(Command("app"))
+async def cmd_app(message: Message, state: FSMContext):
+    await state.clear()
+    button = get_webapp_button()
+
+    if not button:
+        await message.answer("⚠️ Mini App hozircha ulanmagan.", reply_markup=get_start_button())
+        return
+
+    await message.answer(
+        MINI_APP_TEXT,
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[button]])
     )
 
 
