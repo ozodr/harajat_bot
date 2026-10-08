@@ -37,5 +37,14 @@ if not WEBAPP_URL:
 if WEBAPP_URL and not WEBAPP_URL.startswith("https://"):
     raise ValueError("WEBAPP_URL https:// bilan boshlanishi shart (Telegram talabi)!")
 
+# Har deployda manzil o'zgaradi (?v=...), shunda telefondagi Telegram
+# eski keshlangan sahifani emas, yangisini ochadi.
+_build = (
+    os.getenv("RAILWAY_GIT_COMMIT_SHA", "").strip()
+    or os.getenv("RAILWAY_DEPLOYMENT_ID", "").strip()
+)[:10]
+if WEBAPP_URL and _build:
+    WEBAPP_URL += f"&v={_build}" if "?" in WEBAPP_URL else f"/?v={_build}"
+
 # Railway ishga tushirishda PORT ni o'zi beradi.
 PORT = int(os.getenv("PORT", "8080"))
