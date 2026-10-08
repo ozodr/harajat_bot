@@ -5,6 +5,7 @@ Statik fayllar `/` manzilida, JSON API esa `/api/...` da beriladi.
 Har bir API so'rovi `X-Init-Data` sarlavhasidagi Telegram initData bilan
 autentifikatsiya qilinadi.
 """
+import hashlib
 import logging
 from datetime import date, datetime
 from pathlib import Path
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent / "static"
 MAX_AMOUNT = 1_000_000_000
+ASSETS = ("app.js", "styles.css")
 
 
 class ApiError(Exception):
@@ -290,8 +292,35 @@ async def api_overview(request: web.Request) -> web.Response:
 
 # ── App ───────────────────────────────────────────────────────────────────────
 
+def build_index_html() -> str:
+    """index.html'dagi JS/CSS havolalariga mazmun xeshini qo'shadi.
+
+    Telegram webview (ayniqsa telefonda) fayllarni qattiq keshlaydi —
+    yangi deploydan keyin havola o'zgarsa, eski fayl ishlatilmaydi.
+    """
+    html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    for name in ASSETS:
+        digest = hashlib.sha256((STATIC_DIR / name).read_bytes()).hexdigest()[:10]
+        html = html.replace(f"/static/{name}", f"/static/{name}?v={digest}")
+    return html
+
+
 async def index(request: web.Request) -> web.Response:
-    return web.FileResponse(STATIC_DIR / "index.html")
+    return web.Response(
+        text=request.app["index_html"],
+        content_type="text/html",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+async def set_cache_headers(request: web.Request, response: web.StreamResponse):
+    """Versiyali statik fayllar uzoq keshlanadi, qolganlari har safar tekshiriladi"""
+    if "Cache-Control" in response.headers:
+        return
+    if request.path.startswith("/static/") and "v" in request.query:
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    else:
+        response.headers["Cache-Control"] = "no-cache"
 
 
 async def healthz(request: web.Request) -> web.Response:
@@ -301,6 +330,8 @@ async def healthz(request: web.Request) -> web.Response:
 def create_app(db: Database) -> web.Application:
     app = web.Application(middlewares=[api_middleware])
     app["db"] = db
+    app["index_html"] = build_index_html()
+    app.on_response_prepare.append(set_cache_headers)
 
     app.add_routes([
         web.get("/", index),
