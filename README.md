@@ -12,6 +12,7 @@ Bir xil ma'lumot bazasi ustida ikkita interfeys ishlaydi: **chat menyusi** va
 - Default kategoriyalarni yashirish yoki qayta ko'rsatish
 - Oxirgi xarajatlarni o'chirish yoki summasini o'zgartirish
 - Kunlik, haftalik, oylik va yillik hisobotlar
+- Ixtiyoriy oraliq bo'yicha hisobot (masalan `10.01.2026 - 10.02.2026`)
 - SQLite bazada ma'lumot saqlash
 
 ## Mini App
@@ -23,7 +24,7 @@ mos keladi:
 |---|---|
 | 🏠 **Asosiy** — bugun/hafta/oy jamlanmasi va xarajat tarixi (bosib o'zgartirish yoki o'chirish) | «✏️ Harajatni o'chirish/o'zgartirish» |
 | ➕ **Qo'shish** — kategoriya tanlash + raqamli klaviatura (`➕ Yana qo'shish` bilan summalarni qo'shish) | Kategoriya tugmasi → summa yuborish |
-| 📊 **Hisobot** — Bugun / Hafta / Oy / Yil, kunlar kesimidagi grafik va kategoriya ustunlari | «📊 Bugungi», «📅 Haftalik», «🗓️ Oylik», «📆 Yillik» |
+| 📊 **Hisobot** — Bugun / Hafta / Oy / Yil / Oraliq, kunlar (yoki oylar) kesimidagi grafik va kategoriya ustunlari | «📊 Bugungi», «📅 Haftalik», «🗓️ Oylik», «📆 Yillik», «📅 Oraliq tanlash» |
 | ⚙️ **Kategoriya** — qo'shish, nomini o'zgartirish, o'chirish, yashirish/ko'rsatish | «➕ Kategoriya qo'shish», «⚙️ Boshqarish» |
 
 Dizayn Telegram mavzusiga moslashadi (light/dark), tugmalar haptik javob beradi.

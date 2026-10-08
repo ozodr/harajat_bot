@@ -19,7 +19,7 @@ from services.categories import (
     resolve_category,
 )
 from services.database import Database
-from services.periods import PERIODS, period_range
+from services.periods import CUSTOM_PERIOD, PERIODS, custom_title, period_range, validate_range
 from webapp.auth import validate_init_data
 
 logger = logging.getLogger(__name__)
@@ -238,13 +238,26 @@ async def api_report(request: web.Request) -> web.Response:
     user_id = request["user_id"]
 
     period = request.query.get("period", "daily")
-    if period not in PERIODS:
+    today = date.today()
+
+    if period == CUSTOM_PERIOD:
+        try:
+            start = date.fromisoformat(request.query.get("start", ""))
+            end = date.fromisoformat(request.query.get("end", ""))
+        except ValueError:
+            raise ApiError("Sanalar noto'g'ri")
+        try:
+            start, end = validate_range(start, end)
+        except ValueError as err:
+            raise ApiError(str(err))
+        title = custom_title(start, end)
+    elif period in PERIODS:
+        start, end, title = period_range(period, today)
+    else:
         raise ApiError("Noma'lum davr")
 
-    today = date.today()
-    start, end, title = period_range(period, today)
     summary = await db.get_summary(user_id, start, end)
-    trend = await db.get_daily_totals(user_id, start, end) if period != "daily" else []
+    trend = await db.get_daily_totals(user_id, start, end) if start != end else []
 
     return web.json_response({
         "period": period,

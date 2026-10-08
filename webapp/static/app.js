@@ -3,7 +3,7 @@
    Modullar bot vazifalariga mos:
      🏠 Asosiy      — jamlanma + xarajat tarixi (o'chirish / o'zgartirish)
      ➕ Qo'shish     — kategoriya tanlash + summa kiritish
-     📊 Hisobot     — kunlik / haftalik / oylik / yillik
+     📊 Hisobot     — kunlik / haftalik / oylik / yillik / ixtiyoriy oraliq
      ⚙️ Kategoriya  — qo'shish / o'zgartirish / o'chirish / yashirish
    ══════════════════════════════════════════════════════════════════ */
 
@@ -14,6 +14,7 @@ const state = {
   selectedRef: null,
   parts: [""],
   period: "daily",
+  range: null, // { start, end } — "Oraliq" uchun, YYYY-MM-DD
   historyLimit: 5,
 };
 
@@ -35,9 +36,16 @@ function fmtDate(ts, withYear = false) {
   return withYear ? `${d}.${mo}.${y} ${h}:${mi}` : `${d}.${mo} ${h}:${mi}`;
 }
 
-function fmtDay(iso) {
+function fmtDay(iso, withYear = false) {
   const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? `${m[3]}.${m[2]}` : iso;
+  if (!m) return iso;
+  return withYear ? `${m[3]}.${m[2]}.${m[1]}` : `${m[3]}.${m[2]}`;
+}
+
+/** Qurilmaning mahalliy sanasi, YYYY-MM-DD */
+function localIsoDate() {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
 function escapeHtml(s) {
@@ -353,29 +361,89 @@ $("#save-expense").onclick = async () => {
 
 /* ══ 📊 HISOBOT ════════════════════════════════════════════════════ */
 
+function selectPeriod(period) {
+  $$("#period-tabs .seg").forEach((b) => b.classList.toggle("active", b.dataset.period === period));
+  state.period = period;
+  loadReport();
+}
+
 $$("#period-tabs .seg").forEach((btn) => {
   btn.onclick = () => {
-    $$("#period-tabs .seg").forEach((b) => b.classList.toggle("active", b === btn));
-    state.period = btn.dataset.period;
     haptic();
-    loadReport();
+    if (btn.dataset.period === "custom") openRangeSheet();
+    else selectPeriod(btn.dataset.period);
   };
 });
+
+/* Oraliq tanlash oynasi — sanalar tanlangach hisobot yuklanadi */
+function openRangeSheet() {
+  const today = localIsoDate();
+  const range = state.range || { start: today.slice(0, 8) + "01", end: today };
+
+  openSheet(`
+    <h3>📅 Oraliqni tanlang</h3>
+    <div class="sheet-meta">Hisobot uchun boshlanish va tugash sanasi</div>
+
+    <label class="step-label" for="range-start">Boshlanish</label>
+    <input class="input" type="date" id="range-start" value="${range.start}">
+
+    <label class="step-label" for="range-end">Tugash</label>
+    <input class="input" type="date" id="range-end" value="${range.end}">
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="range-cancel">Bekor qilish</button>
+      <button class="btn btn-primary" id="range-apply">📊 Ko'rsatish</button>
+    </div>
+  `);
+
+  $("#range-cancel").onclick = closeSheet;
+  $("#range-apply").onclick = () => {
+    const start = $("#range-start").value;
+    const end = $("#range-end").value;
+    if (!start || !end) { haptic("error"); toast("⚠️ Ikkala sanani tanlang"); return; }
+    if (start > end) { haptic("error"); toast("⚠️ Boshlanish sanasi tugashdan keyin"); return; }
+
+    state.range = { start, end };
+    closeSheet();
+    selectPeriod("custom");
+  };
+}
+
+function reportUrl() {
+  if (state.period === "custom" && state.range) {
+    return `/api/report?period=custom&start=${state.range.start}&end=${state.range.end}`;
+  }
+  return `/api/report?period=${state.period}`;
+}
+
+/* Davr satri; "Oraliq" da yil bilan va o'zgartirish tugmasi bilan */
+function renderRange(data, style = "") {
+  const custom = data.period === "custom";
+  const text = `${fmtDay(data.start_date, custom)} — ${fmtDay(data.end_date, custom)}`;
+  const edit = custom ? ` <button class="link-btn" data-action="edit-range">✏️ O'zgartirish</button>` : "";
+  return `<div class="report-range" style="${style}">${text}${edit}</div>`;
+}
+
+function bindRangeEdit() {
+  const btn = $('#report-body [data-action="edit-range"]');
+  if (btn) btn.onclick = () => { haptic(); openRangeSheet(); };
+}
 
 async function loadReport() {
   const body = $("#report-body");
   body.innerHTML = `<div class="empty">Yuklanmoqda…</div>`;
 
-  const data = await guard(() => api(`/api/report?period=${state.period}`));
+  const data = await guard(() => api(reportUrl()));
   if (!data) { body.innerHTML = `<div class="empty">Yuklab bo'lmadi</div>`; return; }
 
   if (!data.count) {
     body.innerHTML = `
-      <div class="report-range">${fmtDay(data.start_date)} — ${fmtDay(data.end_date)}</div>
+      ${renderRange(data)}
       <div class="empty">
         <span class="empty-emoji">📭</span>
         Bu davrda xarajat topilmadi.
       </div>`;
+    bindRangeEdit();
     return;
   }
 
@@ -385,21 +453,30 @@ async function loadReport() {
       <div class="hero-figure">${fmt(data.total)}</div>
       <div class="hero-unit">so'm · ${data.count} ta yozuv</div>
     </div>
-    <div class="report-range" style="margin-top:10px">
-      ${fmtDay(data.start_date)} — ${fmtDay(data.end_date)}
-    </div>
+    ${renderRange(data, "margin-top:10px")}
     ${renderTrend(data)}
     <div class="chart-title">Kategoriyalar bo'yicha</div>
     <div class="bars">${renderBars(data)}</div>`;
 
   bindTrend();
+  bindRangeEdit();
+}
+
+/* Uzun davrlar (yil yoki 3 oydan ortiq oraliq) oylar kesimida chiziladi */
+const MONTHLY_TREND_DAYS = 92;
+
+function trendByMonth(data) {
+  if (data.period === "yearly") return true;
+  const days = (Date.parse(data.end_date) - Date.parse(data.start_date)) / 86400000 + 1;
+  return days > MONTHLY_TREND_DAYS;
 }
 
 /* Kunlik trend — bitta seriya, kattalik bo'yicha ustunlar */
 function renderTrend(data) {
   if (!data.trend || data.trend.length === 0) return "";
 
-  const points = state.period === "yearly" ? groupByMonth(data.trend) : fillDays(data);
+  const byMonth = trendByMonth(data);
+  const points = byMonth ? groupByMonth(data) : fillDays(data);
   if (points.length < 2) return "";
 
   const max = Math.max(...points.map((p) => p.total));
@@ -411,7 +488,7 @@ function renderTrend(data) {
     </button>`).join("");
 
   return `
-    <div class="chart-title">${state.period === "yearly" ? "Oylar kesimida" : "Kunlar kesimida"}</div>
+    <div class="chart-title">${byMonth ? "Oylar kesimida" : "Kunlar kesimida"}</div>
     <div class="trend">${cols}</div>
     <div class="trend-axis">
       <span>${escapeHtml(points[0].label)}</span>
@@ -444,13 +521,23 @@ function fillDays(data) {
 
 const MONTHS = ["Yan", "Fev", "Mar", "Apr", "May", "Iyun", "Iyul", "Avg", "Sen", "Okt", "Noy", "Dek"];
 
-function groupByMonth(trend) {
-  const totals = new Array(12).fill(0);
-  trend.forEach((t) => {
-    const month = Number(String(t.day).slice(5, 7)) - 1;
-    if (month >= 0 && month < 12) totals[month] += t.total;
+/** Davrdagi har bir oy uchun jami (bo'sh oylar ham); bir necha yil bo'lsa yil qo'shiladi */
+function groupByMonth(data) {
+  const totals = {};
+  data.trend.forEach((t) => {
+    const key = String(t.day).slice(0, 7);
+    totals[key] = (totals[key] || 0) + t.total;
   });
-  return totals.map((total, i) => ({ label: MONTHS[i], total }));
+
+  const [sy, sm] = data.start_date.split("-").map(Number);
+  const [ey, em] = data.end_date.split("-").map(Number);
+  const points = [];
+  for (let y = sy, m = sm; y < ey || (y === ey && m <= em); m === 12 ? (y++, m = 1) : m++) {
+    const key = `${y}-${String(m).padStart(2, "0")}`;
+    const label = sy === ey ? MONTHS[m - 1] : `${MONTHS[m - 1]} ${String(y).slice(2)}`;
+    points.push({ label, total: totals[key] || 0 });
+  }
+  return points;
 }
 
 function bindTrend() {

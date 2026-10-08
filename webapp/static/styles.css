@@ -307,7 +307,7 @@ html, body {
 
 .segmented {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 4px;
   background: var(--surface-2);
   border-radius: var(--radius-sm);
@@ -487,6 +487,7 @@ html, body {
   margin-top: 4px;
 }
 .input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 50px; }
 .input-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
 
 /* ── Toast ───────────────────────────────────────────────────────── */

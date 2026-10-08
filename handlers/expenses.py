@@ -115,6 +115,7 @@ async def build_main_keyboard(db: Database, user_id: int) -> InlineKeyboardMarku
         InlineKeyboardButton(text="🗓️ Oylik", callback_data="report_monthly"),
         InlineKeyboardButton(text="📆 Yillik", callback_data="report_yearly"),
     ])
+    rows.append([InlineKeyboardButton(text="📅 Oraliq tanlash", callback_data="report_custom")])
     rows.append([InlineKeyboardButton(text="✏️ Harajatni o'chirish/o'zgartirish", callback_data="manage_exp")])
 
     return InlineKeyboardMarkup(inline_keyboard=rows)

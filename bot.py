@@ -42,8 +42,10 @@ async def main():
     db = Database()
     await db.init()
 
-    dp.include_router(expenses.router)
+    # reports birinchi: uning sana kutish holati expenses'dagi
+    # umumiy matn handleridan oldin tekshirilishi kerak.
     dp.include_router(reports.router)
+    dp.include_router(expenses.router)
 
     # Server birinchi ko'tariladi: healthcheck Telegram API tezligiga
     # bog'liq bo'lib qolmasligi uchun.

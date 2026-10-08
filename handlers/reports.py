@@ -3,18 +3,35 @@
 """
 import logging
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
 from services.database import Database
-from services.periods import period_range
+from services.periods import custom_title, parse_range_text, period_range
 
 router = Router()
 logger = logging.getLogger(__name__)
 
+RANGE_PROMPT_TEXT = (
+    "📅 <b>Oraliqni tanlang</b>\n\n"
+    "Boshlanish va tugash sanasini yuboring:\n"
+    "<code>10.01.2026 - 10.02.2026</code>\n\n"
+    "<i>Bitta sana yuborsangiz — o'sha kun hisoboti.</i>"
+)
+
+
+class ReportState(StatesGroup):
+    waiting_range = State()
+
 
 def format_report(summary: dict, title: str) -> str:
     if summary["count"] == 0:
-        return f"📭 <b>{title}</b>\n\nXarajatlar topilmadi."
+        return (
+            f"📭 <b>{title}</b>\n"
+            f"📅 {summary['start_date'].strftime('%d.%m.%Y')} — {summary['end_date'].strftime('%d.%m.%Y')}\n\n"
+            "Xarajatlar topilmadi."
+        )
 
     lines = [
         f"📊 <b>{title}</b>",
@@ -49,9 +66,44 @@ def get_report_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🗓️ Oylik", callback_data="report_monthly"),
             InlineKeyboardButton(text="📆 Yillik", callback_data="report_yearly"),
         ],
+        [InlineKeyboardButton(text="📅 Oraliq tanlash", callback_data="report_custom")],
         [InlineKeyboardButton(text="◀️ Asosiy menyu", callback_data="back_main")],
     ])
 
+
+# ── Ixtiyoriy oraliq ─────────────────────────────────────────────────────────
+
+@router.callback_query(F.data == "report_custom")
+async def ask_custom_range(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(ReportState.waiting_range)
+    await callback.message.edit_text(
+        RANGE_PROMPT_TEXT,
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="back_main")]
+        ])
+    )
+    await callback.answer()
+
+
+@router.message(ReportState.waiting_range)
+async def handle_custom_range(message: Message, db: Database, state: FSMContext):
+    try:
+        start, end = parse_range_text(message.text or "")
+    except ValueError as err:
+        await message.answer(
+            f"❌ {err}\n<i>Masalan: 10.01.2026 - 10.02.2026</i>",
+            parse_mode="HTML"
+        )
+        return
+
+    await state.clear()
+    summary = await db.get_summary(message.from_user.id, start, end)
+    text = format_report(summary, custom_title(start, end))
+    await message.answer(text, parse_mode="HTML", reply_markup=get_report_keyboard())
+
+
+# ── Tayyor davrlar ───────────────────────────────────────────────────────────
 
 @router.callback_query(F.data.startswith("report_"))
 async def show_report(callback: CallbackQuery, db: Database):
